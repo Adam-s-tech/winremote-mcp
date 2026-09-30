@@ -23,6 +23,7 @@ except Exception as e:  # pragma: no cover - environment-specific import failure
     PYAUTOGUI_IMPORT_ERROR = e
 from dotenv import load_dotenv
 from fastmcp import FastMCP
+from fastmcp.exceptions import ToolError
 from mcp.types import ImageContent, TextContent
 
 try:
@@ -178,12 +179,12 @@ def Snapshot(
                 reconnect_result = _ensure_session_connected()
                 if reconnect_result is not None:
                     # Session wasn't disconnected (or reconnect failed) — not a session issue
-                    return [f"Snapshot error: {screenshot_error}"]
+                    raise ToolError(f"Snapshot error: {screenshot_error}") from screenshot_error
                 # Session was disconnected and reconnected, retry
                 try:
                     b64 = desktop.take_screenshot(quality=quality, max_width=max_width, monitor=monitor)
                 except Exception as retry_error:
-                    return [f"Snapshot error (after session reconnect): {retry_error}"]
+                    raise ToolError(f"Snapshot error (after session reconnect): {retry_error}") from retry_error
             parts.append(ImageContent(type="image", data=b64, mimeType="image/jpeg"))
 
         # Window list
@@ -206,8 +207,10 @@ def Snapshot(
 
         parts.append(TextContent(type="text", text="\n".join(win_lines)))
         return parts
+    except ToolError:
+        raise
     except Exception as e:
-        return [f"Snapshot error: {e}"]
+        raise ToolError(f"Snapshot error: {e}") from e
 
 
 @mcp.tool(
@@ -242,7 +245,7 @@ def Click(
             pyautogui.click(x, y, button=button)
             return f"Clicked {button} at ({x},{y})"
     except Exception as e:
-        return f"Click error: {e}"
+        raise ToolError(f"Click error: {e}") from e
 
 
 @mcp.tool(
@@ -281,7 +284,7 @@ def Type(
             pyautogui.press("enter")
         return f"Typed {len(text)} chars"
     except Exception as e:
-        return f"Type error: {e}"
+        raise ToolError(f"Type error: {e}") from e
 
 
 @mcp.tool(
@@ -315,7 +318,7 @@ def Scroll(
         direction = "horizontally" if _tobool(horizontal) else "vertically"
         return f"Scrolled {amount} {direction}"
     except Exception as e:
-        return f"Scroll error: {e}"
+        raise ToolError(f"Scroll error: {e}") from e
 
 
 @mcp.tool(
@@ -353,7 +356,7 @@ def Move(
             pyautogui.moveTo(x, y, duration=duration)
             return f"Moved to ({x},{y})"
     except Exception as e:
-        return f"Move error: {e}"
+        raise ToolError(f"Move error: {e}") from e
 
 
 @mcp.tool(
@@ -374,7 +377,7 @@ def Shortcut(keys: str) -> str:
         pyautogui.hotkey(*parts)
         return f"Executed shortcut: {keys}"
     except Exception as e:
-        return f"Shortcut error: {e}"
+        raise ToolError(f"Shortcut error: {e}") from e
 
 
 @mcp.tool(
@@ -413,11 +416,11 @@ def FocusWindow(title: str = "", handle: int = 0) -> str:
     """
     err = _check_win32("FocusWindow")
     if err:
-        return err
+        raise ToolError(err)
     try:
         return desktop.focus_window(title=title or None, handle=handle or None)
     except Exception as e:
-        return f"FocusWindow error: {e}"
+        raise ToolError(f"FocusWindow error: {e}") from e
 
 
 @mcp.tool(
@@ -432,7 +435,7 @@ def MinimizeAll() -> str:
     try:
         return desktop.minimize_all()
     except Exception as e:
-        return f"MinimizeAll error: {e}"
+        raise ToolError(f"MinimizeAll error: {e}") from e
 
 
 @mcp.tool(
@@ -466,18 +469,20 @@ def App(
         elif action == "switch":
             err = _check_win32("App(switch)")
             if err:
-                return err
+                raise ToolError(err)
             return desktop.focus_window(title=name or None, handle=handle or None)
         elif action == "resize":
             err = _check_win32("App(resize)")
             if err:
-                return err
+                raise ToolError(err)
             if not handle:
-                return "resize requires a window handle"
+                raise ToolError("resize requires a window handle")
             return desktop.resize_window(handle, width, height)
-        return f"Unknown action: {action}"
+        raise ToolError(f"Unknown action: {action}")
+    except ToolError:
+        raise
     except Exception as e:
-        return f"App error: {e}"
+        raise ToolError(f"App error: {e}") from e
 
 
 # =========================== REMOTE MANAGEMENT ============================
@@ -514,10 +519,10 @@ def Shell(command: str, timeout: int = 30, cwd: str = "") -> str:
         if result.returncode != 0:
             output += f"\n[Exit code: {result.returncode}]"
         return output.strip() or "(no output)"
-    except subprocess.TimeoutExpired:
-        return f"Command timed out after {timeout}s"
+    except subprocess.TimeoutExpired as e:
+        raise ToolError(f"Command timed out after {timeout}s") from e
     except Exception as e:
-        return f"Shell error: {e}"
+        raise ToolError(f"Shell error: {e}") from e
 
 
 @mcp.tool(
@@ -531,11 +536,11 @@ def GetClipboard() -> str:
     """Read the Windows clipboard text content."""
     err = _check_win32("GetClipboard")
     if err:
-        return err
+        raise ToolError(err)
     try:
         return desktop.get_clipboard()
     except Exception as e:
-        return f"GetClipboard error: {e}"
+        raise ToolError(f"GetClipboard error: {e}") from e
 
 
 @mcp.tool(
@@ -553,11 +558,11 @@ def SetClipboard(text: str) -> str:
     """
     err = _check_win32("SetClipboard")
     if err:
-        return err
+        raise ToolError(err)
     try:
         return desktop.set_clipboard(text)
     except Exception as e:
-        return f"SetClipboard error: {e}"
+        raise ToolError(f"SetClipboard error: {e}") from e
 
 
 @mcp.tool(
@@ -582,7 +587,7 @@ def ListProcesses(
     try:
         return process_mgr.list_processes(filter_name=filter, sort_by=sort_by, limit=limit)
     except Exception as e:
-        return f"ListProcesses error: {e}"
+        raise ToolError(f"ListProcesses error: {e}") from e
 
 
 @mcp.tool(
@@ -602,7 +607,7 @@ def KillProcess(pid: int = 0, name: str = "") -> str:
     try:
         return process_mgr.kill_process(pid=pid, name=name)
     except Exception as e:
-        return f"KillProcess error: {e}"
+        raise ToolError(f"KillProcess error: {e}") from e
 
 
 @mcp.tool(
@@ -617,7 +622,7 @@ def GetSystemInfo() -> str:
     try:
         return process_mgr.get_system_info()
     except Exception as e:
-        return f"GetSystemInfo error: {e}"
+        raise ToolError(f"GetSystemInfo error: {e}") from e
 
 
 def _ensure_session_connected(force: bool = False) -> str | None:
@@ -701,7 +706,7 @@ def ReconnectSession(force: bool = False) -> list:
     """
     err = _ensure_session_connected(force=force)
     if err:
-        return [TextContent(type="text", text=f"ReconnectSession failed: {err}")]
+        raise ToolError(f"ReconnectSession failed: {err}")
     return [TextContent(type="text", text="Session connected to console")]
 
 
@@ -722,7 +727,7 @@ def Notification(title: str = "winremote-mcp", message: str = "") -> str:
     try:
         return desktop.show_notification(title, message)
     except Exception as e:
-        return f"Notification error: {e}"
+        raise ToolError(f"Notification error: {e}") from e
 
 
 class _NoRedirectHandler(__import__("urllib.request").request.HTTPRedirectHandler):
@@ -782,12 +787,12 @@ def PlaySound(path: str | None = None, url: str | None = None) -> str:
     tmp_path = None
     try:
         if not path and not url:
-            return "Error: provide either 'path' (local file) or 'url' (remote file)"
+            raise ToolError("PlaySound error: provide either 'path' (local file) or 'url' (remote file)")
 
         if url and not path:
             allowed, reason = validate_fetch_url(url)
             if not allowed:
-                return f"PlaySound error: blocked URL: {reason}"
+                raise ToolError(f"PlaySound error: blocked URL: {reason}")
             suffix = ".wav"
             if ".mp3" in url:
                 suffix = ".mp3"
@@ -803,7 +808,7 @@ def PlaySound(path: str | None = None, url: str | None = None) -> str:
                         break
                     remaining -= len(chunk)
                     if remaining < 0:
-                        return "PlaySound error: remote file exceeds 10 MB limit"
+                        raise ToolError("PlaySound error: remote file exceeds 10 MB limit")
                     out.write(chunk)
             path = tmp_path
 
@@ -831,7 +836,7 @@ def PlaySound(path: str | None = None, url: str | None = None) -> str:
                 timeout=120,
             )
             if result.returncode != 0:
-                return f"PlaySound error: {result.stderr}"
+                raise ToolError(f"PlaySound error: {result.stderr}")
         else:
             # WAV: use SoundPlayer with PlaySync (blocks until done)
             ps_command = f"(New-Object System.Media.SoundPlayer '{safe_path}').PlaySync()"
@@ -842,13 +847,15 @@ def PlaySound(path: str | None = None, url: str | None = None) -> str:
                 timeout=30,
             )
             if result.returncode != 0:
-                return f"PlaySound error: {result.stderr}"
+                raise ToolError(f"PlaySound error: {result.stderr}")
 
         return f"Played: {path}"
-    except subprocess.TimeoutExpired:
-        return "PlaySound timed out (audio may still be playing)"
+    except subprocess.TimeoutExpired as e:
+        raise ToolError("PlaySound timed out (audio may still be playing)") from e
+    except ToolError:
+        raise
     except Exception as e:
-        return f"PlaySound error: {e}"
+        raise ToolError(f"PlaySound error: {e}") from e
     finally:
         if tmp_path:
             try:
@@ -869,7 +876,7 @@ def LockScreen() -> str:
     try:
         return desktop.lock_screen()
     except Exception as e:
-        return f"LockScreen error: {e}"
+        raise ToolError(f"LockScreen error: {e}") from e
 
 
 @mcp.tool(
@@ -891,15 +898,17 @@ def Scrape(url: str) -> str:
         with _open_validated_fetch_url(url, headers={"User-Agent": "winremote-mcp/0.4"}, timeout=15) as resp:
             html = resp.read(1024 * 1024 + 1)
             if len(html) > 1024 * 1024:
-                return "Scrape error: response exceeds 1 MB limit"
+                raise ToolError("Scrape error: response exceeds 1 MB limit")
             html = html.decode("utf-8", errors="replace")
         md = markdownify(html, heading_style="ATX", strip=["script", "style"])
         # Truncate
         if len(md) > 50000:
             md = md[:50000] + "\n\n[... truncated]"
         return md
+    except ToolError:
+        raise
     except Exception as e:
-        return f"Scrape error: {e}"
+        raise ToolError(f"Scrape error: {e}") from e
 
 
 # ============================== FILE OPERATIONS ============================
@@ -922,7 +931,7 @@ def FileRead(path: str, encoding: str = "utf-8") -> str:
     try:
         p = Path(path)
         if not p.exists():
-            return f"File not found: {path}"
+            raise ToolError(f"File not found: {path}")
         if encoding == "binary":
             data = p.read_bytes()
             return base64.b64encode(data).decode()
@@ -931,8 +940,10 @@ def FileRead(path: str, encoding: str = "utf-8") -> str:
             if len(text) > 100000:
                 text = text[:100000] + "\n\n[... truncated at 100KB]"
             return text
+    except ToolError:
+        raise
     except Exception as e:
-        return f"FileRead error: {e}"
+        raise ToolError(f"FileRead error: {e}") from e
 
 
 @mcp.tool(
@@ -959,7 +970,7 @@ def FileWrite(path: str, content: str, encoding: str = "utf-8", append: bool | s
             f.write(content)
         return f"Written {len(content)} chars to {path}"
     except Exception as e:
-        return f"FileWrite error: {e}"
+        raise ToolError(f"FileWrite error: {e}") from e
 
 
 @mcp.tool(
@@ -1009,7 +1020,7 @@ def FileList(path: str = ".", show_hidden: bool | str = False) -> str:
             return "Directory is empty."
         return tabulate(rows, headers=["Type", "Name", "Size", "Modified"], tablefmt="simple")
     except Exception as e:
-        return f"FileList error: {e}"
+        raise ToolError(f"FileList error: {e}") from e
 
 
 @mcp.tool(
@@ -1052,7 +1063,7 @@ def FileSearch(pattern: str, path: str = ".", recursive: bool | str = True, limi
         result += ":\n" + "\n".join(lines)
         return result
     except Exception as e:
-        return f"FileSearch error: {e}"
+        raise ToolError(f"FileSearch error: {e}") from e
 
 
 # ========================== FILE TRANSFER (BINARY) =========================
@@ -1074,12 +1085,14 @@ def FileDownload(path: str) -> str:
     try:
         p = Path(path)
         if not p.exists():
-            return f"File not found: {path}"
+            raise ToolError(f"File not found: {path}")
         data = p.read_bytes()
         b64 = base64.b64encode(data).decode()
         return f"base64:{len(data)}bytes:{b64}"
+    except ToolError:
+        raise
     except Exception as e:
-        return f"FileDownload error: {e}"
+        raise ToolError(f"FileDownload error: {e}") from e
 
 
 @mcp.tool(
@@ -1099,14 +1112,16 @@ def FileUpload(path: str, data_base64: str) -> str:
     try:
         max_b64_size = 100 * 1024 * 1024  # ~75MB decoded
         if len(data_base64) > max_b64_size:
-            return "FileUpload error: data exceeds maximum size (100MB base64)"
+            raise ToolError("FileUpload error: data exceeds maximum size (100MB base64)")
         p = Path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
         data = base64.b64decode(data_base64, validate=True)
         p.write_bytes(data)
         return f"Written {len(data)} bytes to {path}"
+    except ToolError:
+        raise
     except Exception as e:
-        return f"FileUpload error: {e}"
+        raise ToolError(f"FileUpload error: {e}") from e
 
 
 # ============================== REGISTRY ===================================
@@ -1129,7 +1144,7 @@ def RegRead(key: str, value_name: str) -> str:
     try:
         return registry.reg_read(key, value_name)
     except Exception as e:
-        return f"RegRead error: {e}"
+        raise ToolError(f"RegRead error: {e}") from e
 
 
 @mcp.tool(
@@ -1151,7 +1166,7 @@ def RegWrite(key: str, value_name: str, data: str, reg_type: str = "REG_SZ") -> 
     try:
         return registry.reg_write(key, value_name, data, reg_type)
     except Exception as e:
-        return f"RegWrite error: {e}"
+        raise ToolError(f"RegWrite error: {e}") from e
 
 
 # ============================= SERVICES ====================================
@@ -1173,7 +1188,7 @@ def ServiceList(filter: str = "") -> str:
     try:
         return services.service_list(filter)
     except Exception as e:
-        return f"ServiceList error: {e}"
+        raise ToolError(f"ServiceList error: {e}") from e
 
 
 @mcp.tool(
@@ -1192,7 +1207,7 @@ def ServiceStart(name: str) -> str:
     try:
         return services.service_start(name)
     except Exception as e:
-        return f"ServiceStart error: {e}"
+        raise ToolError(f"ServiceStart error: {e}") from e
 
 
 @mcp.tool(
@@ -1211,7 +1226,7 @@ def ServiceStop(name: str) -> str:
     try:
         return services.service_stop(name)
     except Exception as e:
-        return f"ServiceStop error: {e}"
+        raise ToolError(f"ServiceStop error: {e}") from e
 
 
 # ========================= SCHEDULED TASKS =================================
@@ -1233,7 +1248,7 @@ def TaskList(filter: str = "") -> str:
     try:
         return services.task_list(filter)
     except Exception as e:
-        return f"TaskList error: {e}"
+        raise ToolError(f"TaskList error: {e}") from e
 
 
 @mcp.tool(
@@ -1254,7 +1269,7 @@ def TaskCreate(name: str, command: str, schedule: str) -> str:
     try:
         return services.task_create(name, command, schedule)
     except Exception as e:
-        return f"TaskCreate error: {e}"
+        raise ToolError(f"TaskCreate error: {e}") from e
 
 
 @mcp.tool(
@@ -1273,7 +1288,7 @@ def TaskDelete(name: str) -> str:
     try:
         return services.task_delete(name)
     except Exception as e:
-        return f"TaskDelete error: {e}"
+        raise ToolError(f"TaskDelete error: {e}") from e
 
 
 # ============================= NETWORK =====================================
@@ -1296,7 +1311,7 @@ def Ping(host: str, count: int = 4) -> str:
     try:
         return network.ping(host, count)
     except Exception as e:
-        return f"Ping error: {e}"
+        raise ToolError(f"Ping error: {e}") from e
 
 
 @mcp.tool(
@@ -1317,7 +1332,7 @@ def PortCheck(host: str, port: int, timeout: float = 5.0) -> str:
     try:
         return network.port_check(host, port, timeout)
     except Exception as e:
-        return f"PortCheck error: {e}"
+        raise ToolError(f"PortCheck error: {e}") from e
 
 
 @mcp.tool(
@@ -1337,7 +1352,7 @@ def NetConnections(filter: str = "", limit: int = 50) -> str:
     try:
         return network.net_connections(filter, limit=limit)
     except Exception as e:
-        return f"NetConnections error: {e}"
+        raise ToolError(f"NetConnections error: {e}") from e
 
 
 # ============================ EVENT LOG ====================================
@@ -1361,7 +1376,7 @@ def EventLog(log_name: str = "System", count: int = 20, level: str = "") -> str:
     try:
         return services.event_log(log_name, count, level)
     except Exception as e:
-        return f"EventLog error: {e}"
+        raise ToolError(f"EventLog error: {e}") from e
 
 
 # ============================== OCR ========================================
@@ -1400,10 +1415,8 @@ def OCR(
         if not text:
             return "(no text detected)"
         return text
-    except ImportError as e:
-        return f"OCR error: {e}"
     except Exception as e:
-        return f"OCR error: {e}"
+        raise ToolError(f"OCR error: {e}") from e
 
 
 # ========================== SCREEN RECORDING ===============================
@@ -1452,7 +1465,7 @@ def ScreenRecord(
             ),
         ]
     except Exception as e:
-        return [TextContent(type="text", text=f"ScreenRecord error: {e}")]
+        raise ToolError(f"ScreenRecord error: {e}") from e
 
 
 # ======================== ANNOTATED SNAPSHOT ===============================
@@ -1491,16 +1504,11 @@ def AnnotatedSnapshot(
         except Exception as screenshot_error:
             reconnect_result = _ensure_session_connected()
             if reconnect_result is not None:
-                return [TextContent(type="text", text=f"AnnotatedSnapshot error: {screenshot_error}")]
+                raise ToolError(f"AnnotatedSnapshot error: {screenshot_error}") from screenshot_error
             try:
                 img = ImageGrab.grab()
             except Exception as retry_error:
-                return [
-                    TextContent(
-                        type="text",
-                        text=f"AnnotatedSnapshot error (after session reconnect): {retry_error}",
-                    )
-                ]
+                raise ToolError(f"AnnotatedSnapshot error (after session reconnect): {retry_error}") from retry_error
         native_width = img.width
         if max_width > 0 and img.width > max_width:
             ratio = max_width / img.width
@@ -1564,8 +1572,10 @@ def AnnotatedSnapshot(
             ImageContent(type="image", data=b64, mimeType="image/jpeg"),
             TextContent(type="text", text=text_summary),
         ]
+    except ToolError:
+        raise
     except Exception as e:
-        return [TextContent(type="text", text=f"AnnotatedSnapshot error: {e}")]
+        raise ToolError(f"AnnotatedSnapshot error: {e}") from e
 
 
 # ================================ Task Management ================================
@@ -1580,7 +1590,7 @@ def CancelTask(task_id: str) -> str:
     """
     result = task_manager.cancel_task(task_id)
     if "error" in result:
-        return f"Cancel failed: {result['error']}"
+        raise ToolError(f"Cancel failed: {result['error']}")
     return f"Cancelled task {task_id} ({result['tool_name']})"
 
 
@@ -1596,7 +1606,7 @@ def GetTaskStatus(task_id: str = "") -> str:
     if task_id:
         info = task_manager.get_task(task_id)
         if info is None:
-            return f"Task {task_id} not found"
+            raise ToolError(f"Task {task_id} not found")
         return json.dumps(info, indent=2)
     tasks = task_manager.list_tasks()
     if not tasks:

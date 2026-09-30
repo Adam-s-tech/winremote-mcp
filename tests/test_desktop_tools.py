@@ -5,6 +5,8 @@ from __future__ import annotations
 from unittest.mock import patch
 
 import pyautogui
+import pytest
+from fastmcp.exceptions import ToolError
 
 # The MCP tools are wrapped by task_manager; access the original functions
 # via the module-level function objects before they're decorated, or call .fn
@@ -39,9 +41,11 @@ class TestClick:
 
     def test_click_error(self):
         pyautogui.click.side_effect = Exception("display error")
-        result = _call_tool("Click", x=0, y=0)
-        assert "error" in result.lower()
-        pyautogui.click.side_effect = None
+        try:
+            with pytest.raises(ToolError, match="display error"):
+                _call_tool("Click", x=0, y=0)
+        finally:
+            pyautogui.click.side_effect = None
 
 
 class TestType:
@@ -117,8 +121,8 @@ class TestFocusWindow:
     def test_no_win32(self):
         with patch("winremote.__main__.desktop") as mock_desktop:
             mock_desktop.HAS_WIN32 = False
-            result = _call_tool("FocusWindow", title="notepad")
-            assert "pywin32" in result or "Error" in result
+            with pytest.raises(ToolError, match="pywin32"):
+                _call_tool("FocusWindow", title="notepad")
 
     def test_with_title(self):
         with patch("winremote.__main__.desktop") as mock_desktop:
@@ -153,12 +157,8 @@ class TestReconnectSession:
         with patch("winremote.__main__._ensure_session_connected") as mock_ensure:
             mock_ensure.return_value = "Access denied"
 
-            result = _call_tool("ReconnectSession")
-
-            assert isinstance(result, list)
-            assert len(result) == 1
-            assert "failed" in result[0].text.lower()
-            assert "access denied" in result[0].text.lower()
+            with pytest.raises(ToolError, match="Access denied"):
+                _call_tool("ReconnectSession")
 
     def test_force_reconnect(self):
         from unittest.mock import MagicMock
@@ -210,11 +210,8 @@ class TestSnapshotAutoReconnect:
             # Non-screen-related error should not trigger reconnect
             mock_desktop.take_screenshot.side_effect = Exception("some other error")
 
-            result = _call_tool("Snapshot")
-
-            assert isinstance(result, list)
-            assert len(result) >= 1
-            assert "error" in str(result[-1]).lower()
+            with pytest.raises(ToolError, match="some other error"):
+                _call_tool("Snapshot")
 
     def test_snapshot_reconnect_fails(self):
         with patch("winremote.__main__.desktop") as mock_desktop:
@@ -223,9 +220,5 @@ class TestSnapshotAutoReconnect:
             with patch("winremote.__main__._ensure_session_connected") as mock_ensure:
                 mock_ensure.return_value = "Failed to reconnect"
 
-                result = _call_tool("Snapshot")
-
-                assert isinstance(result, list)
-                assert len(result) >= 1
-                error_text = str(result[-1]).lower()
-                assert "screen grab failed" in error_text or "failed to reconnect" in error_text
+                with pytest.raises(ToolError, match="screen grab failed"):
+                    _call_tool("Snapshot")

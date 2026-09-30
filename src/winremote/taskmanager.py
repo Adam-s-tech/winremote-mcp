@@ -13,6 +13,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable
 
+from fastmcp.exceptions import ToolError
+
 logger = logging.getLogger("winremote.taskmanager")
 
 
@@ -231,7 +233,7 @@ class TaskManager:
                 task.status = TaskStatus.FAILED
                 task.error = f"Timeout waiting for {category.value} lock (another {category.value} task is running)"
                 task.completed_at = time.time()
-                return f"[task:{task.task_id}] Error: {task.error}"
+                raise ToolError(f"[task:{task.task_id}] {task.error}")
 
             try:
                 if task.is_cancelled:
@@ -271,7 +273,9 @@ class TaskManager:
                 task.error = str(e)
                 task.completed_at = time.time()
                 logger.error("Tool %s failed: %s\n%s", tool_name, e, traceback.format_exc())
-                return f"[task:{task.task_id}] Error in {tool_name}: {e}"
+                if isinstance(e, ToolError):
+                    raise
+                raise ToolError(f"[task:{task.task_id}] Error in {tool_name}: {e}") from e
 
             finally:
                 if sem:

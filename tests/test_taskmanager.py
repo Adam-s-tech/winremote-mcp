@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import pytest
+from fastmcp.exceptions import ToolError
+
 from winremote.taskmanager import TaskManager, TaskStatus, ToolCategory
 
 
@@ -69,9 +72,8 @@ class TestTaskManager:
             raise RuntimeError("boom")
 
         wrapped = self.tm.wrap_sync_tool("Shell", bad_tool)
-        result = wrapped()
-        assert "Error" in result
-        assert "boom" in result
+        with pytest.raises(ToolError, match="boom"):
+            wrapped()
 
     def test_task_duration(self):
         import time

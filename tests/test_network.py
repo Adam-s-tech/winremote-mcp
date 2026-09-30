@@ -5,6 +5,8 @@ from __future__ import annotations
 import socket
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 
 class TestPing:
     @patch("winremote.network.subprocess.run")
@@ -22,8 +24,8 @@ class TestPing:
         mock_run.side_effect = subprocess.TimeoutExpired("ping", 20)
         from winremote.network import ping
 
-        result = ping("unreachable.host")
-        assert "timed out" in result.lower()
+        with pytest.raises(subprocess.TimeoutExpired):
+            ping("unreachable.host")
 
 
 class TestPortCheck:
@@ -54,8 +56,8 @@ class TestPortCheck:
         mock_socket_cls.return_value = mock_sock
         from winremote.network import port_check
 
-        result = port_check("slow.host", 80)
-        assert "timed out" in result
+        with pytest.raises(socket.timeout):
+            port_check("slow.host", 80)
 
 
 class TestNetConnections:

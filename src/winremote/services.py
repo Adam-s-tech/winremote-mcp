@@ -33,36 +33,24 @@ def _ps_escape(s: str) -> str:
 
 def service_list(filter_str: str = "") -> str:
     """List Windows services."""
-    try:
-        cmd = "Get-Service"
-        if filter_str:
-            safe = _ps_escape(filter_str)
-            cmd = (
-                f"$f = '{safe}'; Get-Service"
-                ' | Where-Object { $_.DisplayName -like "*$f*" -or $_.Name -like "*$f*" }'
-            )
-        cmd += " | Format-Table Name, DisplayName, Status -AutoSize"
-        return _ps(cmd)
-    except Exception as e:
-        return f"ServiceList error: {e}"
+    cmd = "Get-Service"
+    if filter_str:
+        safe = _ps_escape(filter_str)
+        cmd = f'$f = \'{safe}\'; Get-Service | Where-Object {{ $_.DisplayName -like "*$f*" -or $_.Name -like "*$f*" }}'
+    cmd += " | Format-Table Name, DisplayName, Status -AutoSize"
+    return _ps(cmd)
 
 
 def service_start(name: str) -> str:
     """Start a Windows service."""
-    try:
-        safe = _ps_escape(name)
-        return _ps(f"Start-Service -Name '{safe}' -PassThru | Format-Table Name, Status -AutoSize")
-    except Exception as e:
-        return f"ServiceStart error: {e}"
+    safe = _ps_escape(name)
+    return _ps(f"Start-Service -Name '{safe}' -PassThru | Format-Table Name, Status -AutoSize")
 
 
 def service_stop(name: str) -> str:
     """Stop a Windows service."""
-    try:
-        safe = _ps_escape(name)
-        return _ps(f"Stop-Service -Name '{safe}' -Force -PassThru | Format-Table Name, Status -AutoSize")
-    except Exception as e:
-        return f"ServiceStop error: {e}"
+    safe = _ps_escape(name)
+    return _ps(f"Stop-Service -Name '{safe}' -Force -PassThru | Format-Table Name, Status -AutoSize")
 
 
 # ---------------------------------------------------------------------------
@@ -72,36 +60,27 @@ def service_stop(name: str) -> str:
 
 def task_list(filter_str: str = "") -> str:
     """List scheduled tasks."""
-    try:
-        cmd = "Get-ScheduledTask"
-        if filter_str:
-            safe = _ps_escape(filter_str)
-            cmd = f"$f = '{safe}'; Get-ScheduledTask | Where-Object {{ $_.TaskName -like \"*$f*\" }}"
-        cmd += " | Format-Table TaskName, State, TaskPath -AutoSize"
-        return _ps(cmd)
-    except Exception as e:
-        return f"TaskList error: {e}"
+    cmd = "Get-ScheduledTask"
+    if filter_str:
+        safe = _ps_escape(filter_str)
+        cmd = f"$f = '{safe}'; Get-ScheduledTask | Where-Object {{ $_.TaskName -like \"*$f*\" }}"
+    cmd += " | Format-Table TaskName, State, TaskPath -AutoSize"
+    return _ps(cmd)
 
 
 def task_create(name: str, command: str, schedule: str) -> str:
     """Create a scheduled task using schtasks."""
-    try:
-        safe_name = _ps_escape(name)
-        safe_command = _ps_escape(command)
-        safe_schedule = _ps_escape(schedule)
-        cmd = f"schtasks /Create /TN '{safe_name}' /TR '{safe_command}' /SC '{safe_schedule}' /F"
-        return _ps(cmd)
-    except Exception as e:
-        return f"TaskCreate error: {e}"
+    safe_name = _ps_escape(name)
+    safe_command = _ps_escape(command)
+    safe_schedule = _ps_escape(schedule)
+    cmd = f"schtasks /Create /TN '{safe_name}' /TR '{safe_command}' /SC '{safe_schedule}' /F"
+    return _ps(cmd)
 
 
 def task_delete(name: str) -> str:
     """Delete a scheduled task."""
-    try:
-        safe = _ps_escape(name)
-        return _ps(f"schtasks /Delete /TN '{safe}' /F")
-    except Exception as e:
-        return f"TaskDelete error: {e}"
+    safe = _ps_escape(name)
+    return _ps(f"schtasks /Delete /TN '{safe}' /F")
 
 
 # ---------------------------------------------------------------------------
@@ -111,22 +90,19 @@ def task_delete(name: str) -> str:
 
 def event_log(log_name: str = "System", count: int = 20, level: str = "") -> str:
     """Read Windows Event Log entries."""
-    try:
-        count = min(max(count, 1), 1000)
-        safe_log = _ps_escape(log_name)
-        cmd = f"Get-WinEvent -LogName '{safe_log}' -MaxEvents {count}"
-        if level:
-            level_map = {
-                "critical": 1,
-                "error": 2,
-                "warning": 3,
-                "information": 4,
-                "verbose": 5,
-            }
-            lvl_num = level_map.get(level.lower())
-            if lvl_num:
-                cmd = f"Get-WinEvent -FilterHashtable @{{LogName='{safe_log}';Level={lvl_num}}} -MaxEvents {count}"
-        cmd += " | Format-Table TimeCreated, Id, LevelDisplayName, Message -AutoSize -Wrap"
-        return _ps(cmd, timeout=30)
-    except Exception as e:
-        return f"EventLog error: {e}"
+    count = min(max(count, 1), 1000)
+    safe_log = _ps_escape(log_name)
+    cmd = f"Get-WinEvent -LogName '{safe_log}' -MaxEvents {count}"
+    if level:
+        level_map = {
+            "critical": 1,
+            "error": 2,
+            "warning": 3,
+            "information": 4,
+            "verbose": 5,
+        }
+        lvl_num = level_map.get(level.lower())
+        if lvl_num:
+            cmd = f"Get-WinEvent -FilterHashtable @{{LogName='{safe_log}';Level={lvl_num}}} -MaxEvents {count}"
+    cmd += " | Format-Table TimeCreated, Id, LevelDisplayName, Message -AutoSize -Wrap"
+    return _ps(cmd, timeout=30)

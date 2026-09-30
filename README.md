@@ -235,6 +235,12 @@ exclude = ["ScreenRecord"]   # disable specific tools
 
 > **Note:** winremote-mcp is a standard MCP server and works with any MCP-compatible client — Claude Desktop, Cursor, OpenClaw, and others.
 
+## Tool error semantics
+
+Tool execution failures are returned through the MCP protocol with `isError: true`. The error text still includes the tool name and the underlying diagnostic so clients can display a useful message, while retries, fallbacks, and task status handling can reliably distinguish failures from successful text results.
+
+**Compatibility:** clients must handle MCP tool errors instead of treating strings such as `"ServiceList error: ..."` as successful output. Code that previously pattern-matched those strings should switch to the client's standard MCP error path. Successful tool result formats are unchanged.
+
 ## What's New in v0.4.23
 
 ### 🐛 FastMCP debug/uvicorn compatibility

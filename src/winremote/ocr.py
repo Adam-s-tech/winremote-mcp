@@ -107,8 +107,6 @@ Write-Output $result.Text
             timeout=30,
         )
         return result.stdout.strip()
-    except Exception as e:
-        return f"Windows OCR error: {e}"
     finally:
         try:
             Path(tmp_path).unlink(missing_ok=True)
@@ -136,12 +134,10 @@ def run_ocr(
     # Fallback to Windows built-in OCR
     try:
         result = ocr_windows_builtin(left, top, right, bottom)
-        if result and "error" not in result.lower()[:20]:
-            return result
         if result:
-            errors.append(f"Windows OCR: {result}")
+            return result
     except Exception as e:
         errors.append(f"Windows OCR error: {e}")
 
     # Both failed
-    return "OCR failed. Errors:\n" + "\n".join(errors)
+    raise RuntimeError("OCR failed. Errors:\n" + "\n".join(errors))
