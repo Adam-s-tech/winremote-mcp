@@ -2288,7 +2288,7 @@ wheels = [
 
 [[package]]
 name = "winremote-mcp"
-version = "0.4.23"
+version = "0.4.24"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },

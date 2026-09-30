@@ -241,6 +241,18 @@ Tool execution failures are returned through the MCP protocol with `isError: tru
 
 **Compatibility:** clients must handle MCP tool errors instead of treating strings such as `"ServiceList error: ..."` as successful output. Code that previously pattern-matched those strings should switch to the client's standard MCP error path. Successful tool result formats are unchanged.
 
+## What's New in v0.4.24
+
+### 🐛 Reliable MCP tool errors
+
+- Tool execution failures now set `isError: true` through FastMCP's standard `ToolError` path instead of appearing as successful string results.
+- Service, network, registry, and OCR helper exceptions retain useful diagnostics at the MCP boundary.
+- Task tracking still records failed status and diagnostics before propagating the error to the client.
+
+### 🔒 Dependency security updates
+
+- Raised minimum versions for newly disclosed vulnerabilities in AnyIO, cryptography, HTTPX 2, PyJWT, and Soup Sieve.
+
 ## What's New in v0.4.23
 
 ### 🐛 FastMCP debug/uvicorn compatibility
@@ -250,28 +262,6 @@ Tool execution failures are returned through the MCP protocol with `isError: tru
 - Added regression coverage so the debug HTTP startup path stays compatible with both keyword names.
 
 Chinese release notes are available in [README.zh-CN.md](README.zh-CN.md).
-
-## What's New in v0.4.22
-
-### 🐛 Debug flag restored
-
-- Added the documented `--debug` CLI flag so `winremote-mcp --debug` is accepted.
-- `--debug` enables DEBUG logging for winremote and passes `log_level=debug` to uvicorn for HTTP transport.
-
-### 🔒 Dependency security updates
-
-- Added minimum constraints for `idna>=3.15` and `starlette>=1.0.1` to avoid known vulnerable versions.
-
-### 📚 README release notes cleanup
-
-- README now keeps only the latest two `What's New` sections.
-- Older release notes remain available in the full [CHANGELOG](CHANGELOG.md).
-
-## What's New in v0.4.21
-
-### 📚 README release notes cleanup
-
-- README keeps recent `What's New` sections focused and points older release notes to the full [CHANGELOG](CHANGELOG.md).
 
 For older release notes, see the full [CHANGELOG](CHANGELOG.md).
 

@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.24] - 2026-09-30
+
+### Fixed
+
+- Report MCP tool failures with `isError: true` by raising FastMCP `ToolError` at tool boundaries instead of returning successful error strings.
+- Let service, network, registry, and OCR helpers propagate exceptions so callers receive the original diagnostic through the MCP error path.
+- Preserve task failure state and diagnostics while propagating tool errors.
+
+### Security
+
+- Raise dependency floors for newly disclosed vulnerabilities in AnyIO, cryptography, HTTPX 2, PyJWT, and Soup Sieve.
+
+### Docs
+
+- Document MCP tool error semantics and the compatibility impact in English and Chinese.
+
 ## [0.4.23] - 2026-06-19
 
 ### Fixed

@@ -241,6 +241,18 @@ exclude = ["ScreenRecord"]   # 禁用特定工具
 
 **兼容性说明：** 客户端必须按标准 MCP 工具错误处理失败，而不能再把 `"ServiceList error: ..."` 之类的字符串当作成功输出。以前依赖字符串匹配的代码应改用客户端的 MCP 错误路径。成功调用的结果格式保持不变。
 
+## v0.4.24 新增功能
+
+### 🐛 可靠的 MCP 工具错误
+
+- 工具执行失败现在通过 FastMCP 的标准 `ToolError` 路径设置 `isError: true`，不再表现为成功的字符串结果。
+- 服务、网络、注册表和 OCR 辅助模块的异常会在 MCP 边界保留有用的诊断信息。
+- 任务跟踪仍会记录失败状态和诊断信息，然后将错误传播给客户端。
+
+### 🔒 依赖安全更新
+
+- 针对 AnyIO、cryptography、HTTPX 2、PyJWT 和 Soup Sieve 新披露的漏洞提高了最低版本要求。
+
 ## v0.4.23 新增功能
 
 ### 🐛 FastMCP debug/uvicorn 兼容性修复
@@ -248,28 +260,6 @@ exclude = ["ScreenRecord"]   # 禁用特定工具
 - 修复 FastMCP 3.2.4+ 中 `run_http_async` 参数从 `uvicorn_args` 改为 `uvicorn_config` 后，`winremote-mcp --debug` 启动时报错的问题。
 - 现在会自动检测当前 FastMCP 支持的参数名，并继续把 uvicorn 的 DEBUG 日志配置传递给 HTTP 传输层；旧版 FastMCP 仍保持兼容。
 - 已添加回归测试，覆盖新旧 uvicorn 配置参数的兼容路径。
-
-## v0.4.22 新增功能
-
-### 🐛 恢复调试标志
-
-- 添加了文档化的 `--debug` CLI 标志，使 `winremote-mcp --debug` 可以被接受。
-- `--debug` 启用 winremote 的 DEBUG 日志记录，并向 uvicorn 传递 `log_level=debug` 用于 HTTP 传输。
-
-### 🔒 依赖安全更新
-
-- 添加了 `idna>=3.15` 和 `starlette>=1.0.1` 的最低约束，以避免已知漏洞版本。
-
-### 📚 README 发布说明整理
-
-- README 现在只保留最近两个"What's New"部分。
-- 更早的发布说明可在完整的 [CHANGELOG](CHANGELOG.md) 中查看。
-
-## v0.4.21 新增功能
-
-### 📚 README 发布说明整理
-
-- README 保持最近的"What's New"部分简洁，并将更早的发布说明指向完整的 [CHANGELOG](CHANGELOG.md)。
 
 更早的发布说明请参阅完整的 [CHANGELOG](CHANGELOG.md)。
 
