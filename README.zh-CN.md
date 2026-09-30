@@ -235,6 +235,12 @@ exclude = ["ScreenRecord"]   # 禁用特定工具
 
 > **注意：** winremote-mcp 是一个标准 MCP 服务器，可与任何 MCP 兼容的客户端配合使用——Claude Desktop、Cursor、OpenClaw 等。
 
+## 工具错误语义
+
+工具执行失败现在通过 MCP 协议返回 `isError: true`。错误文本仍会包含工具名称和底层诊断信息，方便客户端展示有用的提示；同时，重试、降级和任务状态处理也能可靠地区分失败与正常文本结果。
+
+**兼容性说明：** 客户端必须按标准 MCP 工具错误处理失败，而不能再把 `"ServiceList error: ..."` 之类的字符串当作成功输出。以前依赖字符串匹配的代码应改用客户端的 MCP 错误路径。成功调用的结果格式保持不变。
+
 ## v0.4.23 新增功能
 
 ### 🐛 FastMCP debug/uvicorn 兼容性修复

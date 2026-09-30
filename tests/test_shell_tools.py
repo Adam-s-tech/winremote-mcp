@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+from fastmcp.exceptions import ToolError
+
 
 def _call_tool(tool_name, **kwargs):
     from winremote import __main__
@@ -34,8 +37,8 @@ class TestShell:
         import subprocess
 
         mock_run.side_effect = subprocess.TimeoutExpired("cmd", 30)
-        result = _call_tool("Shell", command="long", timeout=30)
-        assert "timed out" in result.lower()
+        with pytest.raises(ToolError, match="timed out"):
+            _call_tool("Shell", command="long", timeout=30)
 
 
 class TestScrape:
@@ -58,8 +61,8 @@ class TestScrape:
 
     def test_scrape_error(self):
         with patch("urllib.request.build_opener", side_effect=Exception("network error")):
-            result = _call_tool("Scrape", url="https://bad.url")
-            assert "error" in result.lower()
+            with pytest.raises(ToolError, match="Scrape error"):
+                _call_tool("Scrape", url="https://bad.url")
 
 
 class TestApp:
@@ -70,5 +73,5 @@ class TestApp:
         assert "Launched" in result or "task:" in result
 
     def test_app_unknown_action(self):
-        result = _call_tool("App", action="unknown")
-        assert "Unknown" in result or "task:" in result
+        with pytest.raises(ToolError, match="Unknown action"):
+            _call_tool("App", action="unknown")

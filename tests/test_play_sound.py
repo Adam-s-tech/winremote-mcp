@@ -5,6 +5,9 @@ from __future__ import annotations
 import subprocess
 from unittest.mock import MagicMock, patch
 
+import pytest
+from fastmcp.exceptions import ToolError
+
 
 def _call_tool(**kwargs):
     from winremote.__main__ import PlaySound
@@ -21,33 +24,36 @@ class TestPlaySound:
 
     @patch("subprocess.run")
     def test_play_sound_no_args(self, mock_run):
-        result = _call_tool()
-        assert "error" in result.lower() or "provide" in result.lower()
+        with pytest.raises(ToolError, match="provide either"):
+            _call_tool()
 
     @patch("subprocess.run")
     def test_play_sound_none_args(self, mock_run):
-        result = _call_tool(path=None, url=None)
-        assert "error" in result.lower() or "provide" in result.lower()
+        with pytest.raises(ToolError, match="provide either"):
+            _call_tool(path=None, url=None)
 
     @patch("subprocess.run")
     def test_play_sound_timeout(self, mock_run):
         mock_run.side_effect = subprocess.TimeoutExpired("powershell", 30)
-        result = _call_tool(path="C:\\test.wav")
-        assert "timed out" in result.lower() or "task:" in result
+        with pytest.raises(ToolError, match="timed out"):
+            _call_tool(path="C:\\test.wav")
 
     @patch("subprocess.run")
     def test_play_sound_error(self, mock_run):
         mock_run.return_value = MagicMock(returncode=1, stderr="file not found")
-        result = _call_tool(path="C:\\nonexistent.wav")
-        assert "error" in result.lower() or "task:" in result
+        with pytest.raises(ToolError, match="file not found"):
+            _call_tool(path="C:\\nonexistent.wav")
 
-    @patch("urllib.request.urlretrieve")
+    @patch("winremote.__main__._open_validated_fetch_url")
     @patch("subprocess.run")
-    def test_play_sound_with_url(self, mock_run, mock_retrieve):
+    def test_play_sound_with_url(self, mock_run, mock_open):
         mock_run.return_value = MagicMock(returncode=0, stderr="")
-        mock_retrieve.return_value = (None, None)
+        response = MagicMock()
+        response.read.side_effect = [b"audio", b""]
+        response.__enter__.return_value = response
+        mock_open.return_value = response
         result = _call_tool(url="https://example.com/test.wav")
-        assert "Played" in result or "task:" in result or "error" in result.lower()
+        assert "Played" in result
 
     @patch("subprocess.run")
     def test_play_sound_mp3(self, mock_run):

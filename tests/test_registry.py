@@ -13,15 +13,15 @@ class TestRegistry:
 
         # On non-Windows, HAS_WINREG is False
         if sys.platform != "win32":
-            result = reg_read("HKLM\\SOFTWARE\\Test", "value")
-            assert "only available on Windows" in result
+            with pytest.raises(RuntimeError, match="only available on Windows"):
+                reg_read("HKLM\\SOFTWARE\\Test", "value")
 
     def test_reg_write_non_windows(self):
         from winremote.registry import reg_write
 
         if sys.platform != "win32":
-            result = reg_write("HKCU\\SOFTWARE\\Test", "key", "data")
-            assert "only available on Windows" in result
+            with pytest.raises(RuntimeError, match="only available on Windows"):
+                reg_write("HKCU\\SOFTWARE\\Test", "key", "data")
 
     def test_parse_key_valid(self):
         from winremote.registry import _parse_key
